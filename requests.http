@@ -1,0 +1,31 @@
+### Upload a blinker (3x3, horizontal phase). Returns 201 + Location.
+POST http://localhost:8080/api/v1/boards
+Content-Type: application/json
+
+{
+  "width": 3,
+  "height": 3,
+  "cells": [
+    [false, false, false],
+    [true,  true,  true ],
+    [false, false, false]
+  ]
+}
+
+### Board metadata and generation 0. Replace {id} with the id from above.
+GET http://localhost:8080/api/v1/boards/{id}
+
+### F2: one generation forward. Call it twice -- the answer does not change.
+GET http://localhost:8080/api/v1/boards/{id}/next
+
+### F3: ten generations away. A blinker at an even index matches generation 0.
+GET http://localhost:8080/api/v1/boards/{id}/generations/10
+
+### F4: final state. A blinker reports CYCLE with period 2.
+GET http://localhost:8080/api/v1/boards/{id}/final
+
+### F4 with an explicit limit.
+GET http://localhost:8080/api/v1/boards/{id}/final?maxGenerations=50
+
+### 404 path.
+GET http://localhost:8080/api/v1/boards/00000000-0000-0000-0000-000000000000

@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: life-simulation-engine
+  datasource:
+    url: jdbc:sqlite:data/game-of-life.db
+    driver-class-name: org.sqlite.JDBC
+
+game-of-life:
+  # Default cap on generations walked when resolving a final state.
+  max-generations: 1000
+  # Hard ceiling a caller may not exceed via the maxGenerations query parameter.
+  max-generations-ceiling: 10000
+  # Upper bound on width * height for an uploaded board.
+  max-cells: 1000000
+
+logging:
+  level:
+    com.example.gameoflife: INFO
