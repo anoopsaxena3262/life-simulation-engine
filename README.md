@@ -3,7 +3,8 @@
 A REST API implementing Conway's Game of Life, with board state persisted across restarts.
 
 See [DESIGN.md](DESIGN.md) for the architecture, the decisions behind it, and the
-requirements traceability table.
+requirements traceability table. Local setup, running, tests, and the SQLite
+database are in [DEVELOPER.md](DEVELOPER.md).
 
 ## Running
 
