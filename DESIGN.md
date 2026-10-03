@@ -1,8 +1,8 @@
-# Design — Conway's Game of Life API
+# Design — Conway's Game of Life - life-simulation-engine
 
 **Stack:** Java 25 · Spring Boot 3.x · Maven · SQLite · JUnit 5 + AssertJ
 
-This document records the design of the service and the reasoning behind each decision. It is written to be read alongside the code.
+This document records the design of Conway's Game of Life - life-simulation-engine and the reasoning behind each decision. It is written to be read alongside the code.
 
 ---
 

@@ -6,3 +6,4 @@ data/*.db-shm
 .idea/
 *.iml
 .vscode/
+TODO.md
