@@ -46,10 +46,10 @@ That compiles `src/main` and `src/test` and runs the suite. Expected result toda
 
 | Path | What it is |
 |---|---|
-| `src/main/java/com/example/gameoflife/domain` | Rules, encoding, termination. No framework imports. |
-| `src/main/java/com/example/gameoflife/repository` | `BoardRepository` and the SQLite implementation. |
-| `src/main/java/com/example/gameoflife/service` | Validation, cache, generation limits. |
-| `src/main/java/com/example/gameoflife/web` | Controller, request and response records, error handler. |
+| `src/main/java/life/simulation/engine/domain` | Rules, encoding, termination. No framework imports. |
+| `src/main/java/life/simulation/engine/repository` | `BoardRepository` and the SQLite implementation. |
+| `src/main/java/life/simulation/engine/service` | Validation, cache, generation limits. |
+| `src/main/java/life/simulation/engine/web` | Controller, request and response records, error handler. |
 | `src/main/resources/application.yml` | Port default, datasource URL, generation and cell caps. |
 | `src/test/java` | One test class per layer. Names match the traceability table in DESIGN.md. |
 | `requests.http` | Manual happy-path calls against a running service. |

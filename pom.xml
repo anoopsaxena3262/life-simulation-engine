@@ -12,7 +12,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
+    <groupId>life.simulation</groupId>
     <artifactId>life-simulation-engine</artifactId>
     <version>1.0.0</version>
     <name>life-simulation-engine</name>
