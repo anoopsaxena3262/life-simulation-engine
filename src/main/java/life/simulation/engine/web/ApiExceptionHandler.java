@@ -1,20 +1,26 @@
 package life.simulation.engine.web;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import life.simulation.engine.service.exception.BoardNotFoundException;
@@ -33,6 +39,9 @@ import life.simulation.engine.service.exception.NoConclusionException;
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    /** Upload fields, in the order a caller writes them. */
+    private static final List<String> FIELD_ORDER = List.of("width", "height", "cells");
 
     @ExceptionHandler(BoardNotFoundException.class)
     public ProblemDetail onNotFound(BoardNotFoundException ex) {
@@ -100,6 +109,22 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, headers, HttpStatus.BAD_REQUEST, request);
     }
 
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(
+            TypeMismatchException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        // A repeated query parameter arrives as String[]. Its toString() is the array
+        // class name plus an identity hash, so the same call would read differently
+        // every time. Name the values instead. A single value keeps Spring's wording.
+        String detail = "Failed to convert '" + parameterName(ex) + "' with value: '"
+                + textOf(ex.getValue()) + "'";
+        log.warn("type mismatch: {}", detail);
+        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, "Bad Request", detail);
+        return handleExceptionInternal(ex, body, headers, HttpStatus.BAD_REQUEST, request);
+    }
+
     private static <T extends Throwable> T findCause(Throwable thrown, Class<T> type) {
         Throwable current = thrown;
         while (current != null) {
@@ -118,11 +143,20 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return problem;
     }
 
-    // Creates a string message from the validation errors
+    // Creates a string message from the validation errors.
+    // Hibernate Validator returns the violations in a HashSet whose hash includes the
+    // request object, so the same body is not a stable order. List the upload fields
+    // as width, height, cells.
     private static String validationMessage(MethodArgumentNotValidException ex) {
         var fieldErrors = ex.getBindingResult().getFieldErrors();
         if (!fieldErrors.isEmpty()) {
             return fieldErrors.stream()
+                    .sorted(Comparator
+                            .comparingInt((FieldError error) -> fieldRank(error.getField()))
+                            .thenComparing(FieldError::getField)
+                            .thenComparing(error -> error.getDefaultMessage() == null
+                                    ? ""
+                                    : error.getDefaultMessage()))
                     .map(error -> error.getField() + ": " + error.getDefaultMessage())
                     .collect(Collectors.joining("; "));
         }
@@ -131,5 +165,24 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
                 .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
         return global.isBlank() ? "Request validation failed" : global;
+    }
+
+    private static int fieldRank(String field) {
+        int index = FIELD_ORDER.indexOf(field);
+        return index < 0 ? FIELD_ORDER.size() : index;
+    }
+
+    private static String parameterName(TypeMismatchException ex) {
+        if (ex instanceof MethodArgumentTypeMismatchException mismatch) {
+            return mismatch.getName();
+        }
+        return ex.getPropertyName() == null ? "value" : ex.getPropertyName();
+    }
+
+    private static String textOf(Object value) {
+        if (value instanceof Object[] values) {
+            return Arrays.stream(values).map(ApiExceptionHandler::textOf).collect(Collectors.joining(", "));
+        }
+        return String.valueOf(value);
     }
 }

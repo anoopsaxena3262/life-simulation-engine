@@ -17,6 +17,7 @@ import org.springframework.validation.ObjectError;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import life.simulation.engine.service.exception.BoardNotFoundException;
 import life.simulation.engine.service.exception.InvalidBoardException;
@@ -89,6 +90,41 @@ class ApiExceptionHandlerTest {
     }
 
     @Test
+    void fieldValidationListsWidthThenHeightThenCells() throws Exception {
+        var problem = validationProblem(
+                new FieldError("request", "cells", "must not be null"),
+                new FieldError("request", "height", "must be greater than or equal to 1"),
+                new FieldError("request", "width", "must be greater than or equal to 1"));
+
+        assertThat(problem.getDetail()).isEqualTo(
+                "width: must be greater than or equal to 1; "
+                        + "height: must be greater than or equal to 1; "
+                        + "cells: must not be null");
+    }
+
+    @Test
+    void repeatedQueryValueNamesTheValues() throws Exception {
+        Method method = ApiExceptionHandlerTest.class.getDeclaredMethod("finalState", Integer.class);
+        var mismatch = new MethodArgumentTypeMismatchException(
+                new String[] {"abc", "5"},
+                Integer.class,
+                "maxGenerations",
+                new MethodParameter(method, 0),
+                new NumberFormatException("For input string: \"abc\""));
+
+        ResponseEntity<Object> response = handler.handleTypeMismatch(
+                mismatch,
+                new HttpHeaders(),
+                HttpStatus.BAD_REQUEST,
+                new ServletWebRequest(new MockHttpServletRequest()));
+
+        var problem = (ProblemDetail) response.getBody();
+        assertThat(problem).isNotNull();
+        assertThat(problem.getTitle()).isEqualTo("Bad Request");
+        assertThat(problem.getDetail()).isEqualTo("Failed to convert 'maxGenerations' with value: 'abc, 5'");
+    }
+
+    @Test
     void globalValidationUsesTheObjectMessage() throws Exception {
         var problem = validationProblem(new ObjectError("request", "upload is empty"));
 
@@ -109,6 +145,10 @@ class ApiExceptionHandlerTest {
                 HttpStatus.BAD_REQUEST,
                 new ServletWebRequest(new MockHttpServletRequest()));
         return (ProblemDetail) response.getBody();
+    }
+
+    @SuppressWarnings("unused")
+    private static void finalState(Integer maxGenerations) {
     }
 
     private static MethodArgumentNotValidException validationFailure(ObjectError... errors) throws Exception {

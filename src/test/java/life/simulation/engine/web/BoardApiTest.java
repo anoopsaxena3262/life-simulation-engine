@@ -220,6 +220,33 @@ class BoardApiTest {
     }
 
     @Test
+    @DisplayName("several invalid fields are listed width, height, then cells")
+    void validationFieldOrderIsStable() {
+        ResponseEntity<String> response = postJson("{\"width\":0,\"height\":0,\"cells\":null}");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).contains(
+                "width: must be greater than or equal to 1; "
+                        + "height: must be greater than or equal to 1; "
+                        + "cells: must not be null");
+    }
+
+    @Test
+    @DisplayName("a repeated non-numeric maxGenerations names the values")
+    void repeatedMaxGenerationsNamesTheValues() {
+        UUID id = createBoard();
+        String url = baseUrl() + "/" + id + "/final?maxGenerations=abc&maxGenerations=5";
+
+        ResponseEntity<String> first = restTemplate.getForEntity(url, String.class);
+        ResponseEntity<String> second = restTemplate.getForEntity(url, String.class);
+
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(first.getBody()).isEqualTo(second.getBody());
+        assertThat(first.getBody()).contains("Failed to convert 'maxGenerations' with value: 'abc, 5'");
+        assertThat(first.getBody()).doesNotContain("Ljava.lang.String");
+    }
+
+    @Test
     @DisplayName("a missing cells field is a validation failure")
     void missingCellsReturns400() {
         ResponseEntity<String> response = postJson("{\"width\":1,\"height\":1}");
