@@ -45,6 +45,21 @@ class TerminationDetectorTest {
     }
 
     @Test
+    @DisplayName("a shared hash is a cycle only when the grids match")
+    void hashCollisionDoesNotInventACycle() {
+        String horizontal = rows(
+                "000",
+                "111",
+                "000");
+
+        TerminationResult result = TerminationDetector.detect(
+                horizontal, 3, 3, 10, state -> new TerminationDetector.StateHash(1L, 1L)).orElseThrow();
+
+        assertThat(result).isEqualTo(new TerminationResult(
+                TerminationKind.CYCLE, horizontal, 0, 2, 2));
+    }
+
+    @Test
     @DisplayName("board that dies out is reported as extinct")
     void detectsExtinction() {
         String single = rows(
@@ -148,6 +163,30 @@ class TerminationDetectorTest {
                 "01110");
 
         TerminationResult result = conclude(start, 5, 5, 20);
+
+        assertThat(result).isEqualTo(new TerminationResult(
+                TerminationKind.CYCLE, cycleState, 4, 2, 6));
+    }
+
+    @Test
+    @DisplayName("a cycle past a checkpoint still reports the original entry generation")
+    void cycleConfirmedFromACheckpoint() {
+        String start = rows(
+                "00000",
+                "00100",
+                "01110",
+                "00100",
+                "00000");
+        String cycleState = rows(
+                "01110",
+                "10001",
+                "10001",
+                "10001",
+                "01110");
+
+        // Interval 2 stores generation 4, where this oscillator begins, and confirms
+        // the repeat from that checkpoint rather than by replaying generation 0.
+        TerminationResult result = TerminationDetector.detect(start, 5, 5, 20, 2).orElseThrow();
 
         assertThat(result).isEqualTo(new TerminationResult(
                 TerminationKind.CYCLE, cycleState, 4, 2, 6));

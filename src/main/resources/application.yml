@@ -1,18 +1,42 @@
 spring:
   application:
     name: life-simulation-engine
+  mvc:
+    # Unhandled failures (bad JSON, a non-UUID id) use the same problem+json shape
+    # as the handlers in ApiExceptionHandler.
+    problemdetails:
+      enabled: true
   datasource:
-    url: jdbc:sqlite:data/game-of-life.db
+    # busy_timeout is set on the URL so every pooled connection has it. The driver
+    # default is 3000 ms; leaving it implicit made SQLITE_BUSY look like a 500
+    # with no stated wait. 5000 ms is the wait, not a guarantee a large write fits.
+    url: jdbc:sqlite:data/game-of-life.db?busy_timeout=5000
     driver-class-name: org.sqlite.JDBC
+    hikari:
+      # foreign_keys is per connection and defaults to off. journal_mode=WAL is
+      # set once at startup because that pragma is stored in the database file.
+      connection-init-sql: PRAGMA foreign_keys=ON
 
 game-of-life:
   # Default cap on generations walked when resolving a final state.
   max-generations: 1000
   # Hard ceiling a caller may not exceed via the maxGenerations query parameter.
+  # Must be at least max-generations. A lower ceiling would silently shrink the default.
   max-generations-ceiling: 10000
-  # Upper bound on width * height for an uploaded board.
-  max-cells: 1000000
+  # Upper bound on width * height. 300 per side. A larger grid is rejected at upload.
+  max-cells: 90000
+  # Upper bound on cells × generations for one /generations read, which writes a row per step.
+  # /final does not use this. It stores a hash per step and stops at the generation ceiling.
+  max-cell-generations: 5000000
+  # Reject the body before Jackson builds the grid. max-cells runs only after that.
+  max-request-bytes: 2000000
 
 logging:
   level:
+    # INFO is the running default. It logs startup, schema, each HTTP call,
+    # a saved board, and how /final concluded. It does not log the grid.
+    # DEBUG adds method entry, cache hit/miss, and resume indexes.
+    # TRACE is per cell. Do not set the whole package to TRACE.
+    # For a rules problem, set only LifeEngine:
+    #   life.simulation.engine.domain.LifeEngine: TRACE
     life.simulation.engine: INFO
