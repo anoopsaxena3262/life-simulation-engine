@@ -58,6 +58,8 @@ That compiles `src/main` and `src/test` and runs the suite. Expected result: `BU
 | `data/game-of-life.db`                            | Created on first start. Not source. Do not commit it.                      |
 
 
+Every tracked file is listed in [Files](#files).
+
 `application.yml` does not set `server.port`, so the process binds to port **8080**.
 
 ## Start and stop
@@ -381,3 +383,78 @@ Do not set the whole package to TRACE. `countLiveNeighbours` runs once per cell 
 ## Where to look next
 
 Read DESIGN.md section 3 for the package boundaries, section 5 for the HTTP contract, section 6 for which test covers which requirement, and section 9 for the same logging levels. Change the domain package when the cells are wrong. Change `BoardService` when a cache or a limit is wrong. Change the controller or `ApiExceptionHandler` when the status or the JSON shape is wrong.
+
+## Files
+
+Every file Git tracks, and what it is for. Generated output (`target/`), the SQLite file, and local notes are not in this list.
+
+| File | What it is |
+|---|---|
+| `.gitignore` | Keeps build output, the database, and editor files out of Git. |
+| `pom.xml` | Maven build. Java 25, Spring Boot, SQLite, and the test libraries. |
+| `README.md` | How to start the service and which script demonstrates which feature. |
+| `DESIGN.md` | Requirements, architecture, decisions, and which test covers each one. |
+| `DEVELOPER.md` | Setup, commands, tests, logging, and this file list. |
+| `requests.http` | The blinker calls, one request at a time, for an editor that sends HTTP files. |
+| `src/main/resources/application.yml` | SQLite URL, the generation and cell caps, and the log level. |
+| `src/main/java/life/simulation/engine/GameOfLifeApplication.java` | Process entry point. Starts Spring Boot. |
+| `src/main/java/life/simulation/engine/config/GameProperties.java` | The limits from `application.yml`: generations, cells, and request size. |
+| `src/main/java/life/simulation/engine/config/JacksonConfig.java` | Rejects a null cell instead of storing it as dead. |
+| `src/main/java/life/simulation/engine/domain/Board.java` | An uploaded board. Generation 0 is never overwritten. |
+| `src/main/java/life/simulation/engine/domain/LifeEngine.java` | One generation step. B3/S23, finite board, dead borders. |
+| `src/main/java/life/simulation/engine/domain/StateCodec.java` | Converts a boolean grid to the flat `0`/`1` string, and back. |
+| `src/main/java/life/simulation/engine/domain/TerminationDetector.java` | Walks until a still life, a cycle, or the generation cap. |
+| `src/main/java/life/simulation/engine/domain/TerminationKind.java` | `EXTINCT`, `FIXED_POINT`, or `CYCLE`. |
+| `src/main/java/life/simulation/engine/domain/TerminationResult.java` | The concluded state, where it first appeared, the period, and how far the walk went. |
+| `src/main/java/life/simulation/engine/repository/BoardRepository.java` | Storage contract. The seam for replacing SQLite. |
+| `src/main/java/life/simulation/engine/repository/SchemaInitializer.java` | Creates the two tables at startup. |
+| `src/main/java/life/simulation/engine/repository/SqliteBoardRepository.java` | JDBC implementation of that contract. |
+| `src/main/java/life/simulation/engine/service/BoardService.java` | Upload, cache, limits, and the final-state walk. Reads do not advance the board. |
+| `src/main/java/life/simulation/engine/service/FinalStateOutcome.java` | A concluded board plus the generation cap the walk used. |
+| `src/main/java/life/simulation/engine/service/exception/BoardNotFoundException.java` | Unknown id. The API returns 404. |
+| `src/main/java/life/simulation/engine/service/exception/InvalidBoardException.java` | A board, index, or limit the service will not accept. The API returns 400. |
+| `src/main/java/life/simulation/engine/service/exception/NoConclusionException.java` | The walk hit its generation cap. The API returns 422. |
+| `src/main/java/life/simulation/engine/web/BoardController.java` | The five routes: upload, get, next, generation N, and final. |
+| `src/main/java/life/simulation/engine/web/ApiExceptionHandler.java` | Problem responses for 400, 404, and 422, including a body that grew past the size cap. |
+| `src/main/java/life/simulation/engine/web/RequestSizeLimitFilter.java` | Stops reading a body once it passes `max-request-bytes`. |
+| `src/main/java/life/simulation/engine/web/RequestTooLargeException.java` | Thrown by that filter. The title is `Request too large`. |
+| `src/main/java/life/simulation/engine/web/dto/CreateBoardRequest.java` | Upload JSON: width, height, and the boolean grid. |
+| `src/main/java/life/simulation/engine/web/dto/BoardResponse.java` | Id, size, generation 0, and the cells. |
+| `src/main/java/life/simulation/engine/web/dto/GenerationResponse.java` | One later generation of a stored board. |
+| `src/main/java/life/simulation/engine/web/dto/FinalStateResponse.java` | The concluded cells, the kind, the period, and how far the walk went. |
+| `src/test/java/life/simulation/engine/domain/LifeEngineTest.java` | Rules, with no Spring context: block, blinker, toad, beacon, glider, and the small shapes. |
+| `src/test/java/life/simulation/engine/domain/StateCodecTest.java` | A grid survives serialize and deserialize. A string of the wrong length is rejected. |
+| `src/test/java/life/simulation/engine/domain/TerminationDetectorTest.java` | Fixed point, cycle, extinction, a hash collision, and a cycle confirmed from a checkpoint. |
+| `src/test/java/life/simulation/engine/repository/BoardRepositoryTest.java` | Save and read against a temporary SQLite file, including the generation cache. |
+| `src/test/java/life/simulation/engine/repository/RestartPersistenceTest.java` | Writes rows, shuts the context down, opens the same file, and reads the rows back. |
+| `src/test/java/life/simulation/engine/service/BoardServiceTest.java` | Cache, resume, the generation ceiling, and the cell-generation budget. |
+| `src/test/java/life/simulation/engine/web/ApiExceptionHandlerTest.java` | Status and title for 400, 404, and 422, with no web server. |
+| `src/test/java/life/simulation/engine/web/BoardApiTest.java` | The HTTP API on a random port, including a body that crosses the size cap inside `cells`. |
+| `try-it.sh` | Blinker: upload, next twice, generation 10, final, then the 422. |
+| `try-all.sh` | Runs every demo script. Stops at the first failure. |
+| `try-restart.sh` | `save`, stop the process, start it, `check`. The board is still there. |
+| `restart.sh` | Asks whether to keep or delete the database file, then starts the service. |
+| `scripts/common.sh` | Shared upload, GET, and assertion helpers. `try-it.sh` does not use it. |
+| `scripts/try-fixed-point.sh` | Block. `/final` is `FIXED_POINT`, period 1. |
+| `scripts/try-toad.sh` | Toad. `/final` is `CYCLE`, period 2. |
+| `scripts/try-beacon.sh` | Beacon. `/final` is `CYCLE`, period 2. |
+| `scripts/try-glider.sh` | Glider. It moves, then dies at the edge. `/final` is `FIXED_POINT`. |
+| `scripts/try-large-glider.sh` | 300×300 glider. Generation 56 is 400. The default `/final` is 422. The ceiling walk concludes. |
+| `scripts/try-plus.sh` | Plus sign. The cycle starts at generation 4, not at generation 0. |
+| `scripts/try-empty.sh` | Empty board. `/final` is `EXTINCT`. |
+| `scripts/try-single-cell.sh` | One live cell. It dies. `/final` is `EXTINCT`. |
+| `scripts/try-full-board.sh` | Every cell live. The board collapses. `/final` is `EXTINCT`. |
+| `scripts/try-one-by-one.sh` | A 1×1 dead cell and a 1×1 live cell. Both end `EXTINCT`. |
+| `scripts/try-one-by-n.sh` | One row and one column. The end cells die. |
+| `scripts/try-not-found.sh` | A UUID that was never uploaded. 404. |
+| `scripts/try-bad-id.sh` | An id that is not a UUID. 400, not 404. |
+| `scripts/try-invalid-board.sh` | `width` of 0. 400. |
+| `scripts/try-mismatched-board.sh` | Declared size does not match the rows. 400. |
+| `scripts/try-missing-cells.sh` | Width and height, and no `cells`. 400. |
+| `scripts/try-null-cell.sh` | A null cell. 400. It is not stored as dead. |
+| `scripts/try-bad-json.sh` | A body that is not JSON. 400. |
+| `scripts/try-oversized.sh` | More cells than `max-cells`. 400. |
+| `scripts/try-bad-generation.sh` | Generation index `-1`. 400. |
+| `scripts/try-generation-ceiling.sh` | Generation index above the ceiling. 400. |
+| `scripts/try-bad-limit.sh` | `maxGenerations=0`. 400, not 422. |
+| `scripts/try-limit-clamped.sh` | `maxGenerations` above the ceiling is clamped. The blinker still concludes. |
