@@ -11,4 +11,5 @@ TODO.md
 *.pptx
 *.docx
 .~lock.Game-of-Life-API-Architecture.pptx\#
+*.pptx#
 scripts/build_architecture_deck.py
