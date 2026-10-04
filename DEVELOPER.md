@@ -212,7 +212,7 @@ The suite is layered. A failure should be read in this order, because a red HTTP
 1. `StateCodecTest`, `LifeEngineTest`, `TerminationDetectorTest` — no Spring context. These pin the `0`/`1` encoding, B3/S23, and fixed-point / cycle / extinction / give-up, including a forced hash collision and a cycle confirmed from a checkpoint.
 2. `BoardRepositoryTest` — SQLite in a temporary file. Save, read, idempotent generation insert, highest cached index.
 3. `BoardServiceTest` — validation, cache hit, resume, limit clamp, non-positive `maxGenerations`. The repository is a mock except where the test builds a small in-memory cache.
-4. `ApiExceptionHandlerTest` — status, title, and the `generationsAttempted` field on a 422. No web server.
+4. `ApiExceptionHandlerTest` — status, title, field order (`width`, `height`, `cells`), a repeated `maxGenerations` quoted as text, and the `generationsAttempted` field on a 422. No web server.
 5. `BoardApiTest` — full Spring context on a random port, with its own temporary database file. Every path in DESIGN.md section 5, plus 404, 400, and 422. These tests check the blinker's cells, the validation title, a null cell, a declared body over the request-size cap, a chunked body that crosses that cap inside `cells`, and `generationsAttempted` on the 422. Other patterns stay in `LifeEngineTest`.
 6. `RestartPersistenceTest` — start a context, write a board and generations 0 through 4, shut it down, start a new context on the same file, read the rows back. It does not call `generationAt` on the second context, because that method would recompute a missing cache and hide a lost write.
 
@@ -235,7 +235,8 @@ What those calls return:
 | `GET .../final?maxGenerations=1` | 422            | Problem title `No conclusion`, and `generationsAttempted` is 1.                            |
 | `GET .../final?maxGenerations=0` | 400            | `maxGenerations` has to be at least 1. A value above the ceiling is clamped, not rejected. |
 | Unknown UUID                     | 404            | Title `Board not found`.                                                                   |
-| `"width": 0`                     | 400            | Title `Validation failed`, and the detail names `width`. A grid whose rows do not match the declared size is title `Invalid board`. A body that is not JSON is title `Bad Request`. |
+| `"width": 0`                     | 400            | Title `Validation failed`, and the detail names `width`. When `width`, `height`, and `cells` all fail, they are listed in that order. A grid whose rows do not match the declared size is title `Invalid board`. A body that is not JSON is title `Bad Request`. |
+| `maxGenerations=abc&maxGenerations=5` | 400       | Title `Bad Request`. The detail quotes `abc, 5`, and a second call returns the same text. |
 
 
 No GET changes the stored board. Calling `/next` twice returns generation 1 both times. `/final` does not fill the generation cache. After a `/final`, generation rows exist only for indexes something has already requested through `/next` or `/generations/{n}`, plus generation 0 from the upload.
@@ -428,7 +429,7 @@ Every file Git tracks, and what it is for. Generated output (`target/`), the SQL
 | `src/test/java/life/simulation/engine/repository/BoardRepositoryTest.java` | Save and read against a temporary SQLite file, including the generation cache. |
 | `src/test/java/life/simulation/engine/repository/RestartPersistenceTest.java` | Writes rows, shuts the context down, opens the same file, and reads the rows back. |
 | `src/test/java/life/simulation/engine/service/BoardServiceTest.java` | Cache, resume, the generation ceiling, and the cell-generation budget. |
-| `src/test/java/life/simulation/engine/web/ApiExceptionHandlerTest.java` | Status and title for 400, 404, and 422, with no web server. |
+| `src/test/java/life/simulation/engine/web/ApiExceptionHandlerTest.java` | Status, title, and detail for 400, 404, and 422, with no web server. Includes field order and a repeated query value. |
 | `src/test/java/life/simulation/engine/web/BoardApiTest.java` | The HTTP API on a random port, including a body that crosses the size cap inside `cells`. |
 | `try-it.sh` | Blinker: upload, next twice, generation 10, final, then the 422. |
 | `try-all.sh` | Runs every demo script. Stops at the first failure. |
