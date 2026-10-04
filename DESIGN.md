@@ -196,11 +196,26 @@ Base path `/api/v1`. JSON throughout. Errors follow RFC 7807 (`application/probl
 - `maxGenerations` is an optional query parameter on `/final`. A value below 1 is `400`. A value above `max-generations-ceiling` is clamped down to the ceiling and the walk uses the ceiling. The clamp is not an error. It is visible as `generationsLimit`. The cell-generation budget does not change this number.
 - Limit resolution for `/final`, before those clamps: the query parameter if present, otherwise `board.max_generations` if that column is non-null, otherwise `game-of-life.max-generations`.
 - Input is validated at the edge: positive dimensions (`@Min`, title `Validation failed`, with the field name), cell count matching the declared dimensions (title `Invalid board`), a null cell (400, the body is not a board of booleans), and the caps in §1.4. A generation index below 0, above the ceiling, or past the cell-generation budget is `400`.
-- A path id that is not a UUID, or a generation index that is not an integer, is `400`. An id that is a UUID and is not stored is `404`.
+- A path id that Java cannot parse as a UUID, or a generation index that Spring cannot parse as a number, is `400`. An id that parses and is not stored is `404`. Java's parser, and a few other framework defaults, are wider than the examples in the scripts. They are listed in §5.1.
 - A missing resume row, when the board itself exists, is a server error (500). That is a broken cache, not an unknown board.
 - No `GET` mutates the stored board. The only writes outside `POST /boards` go to the memoisation cache, and only from `/next` and `/generations/{n}`. `/final` does not write the cache. Cache writes are not visible as a change to generation 0.
 - Resuming a generation read starts at the highest cached index and walks forward. If that index is already past the one requested, and the requested row is missing, the walk starts again from generation 0. It does not return the later row as if it were the requested generation.
 - Bean validation (`width` below 1, missing `cells`) is answered by `ApiExceptionHandler`, which extends `ResponseEntityExceptionHandler` so it runs ahead of Spring Boot's problem-details handler. The title is `Validation failed` and the detail names the fields. A body that is not JSON, a non-UUID id, an unknown method (405), or an unsupported media type (415) keeps Spring's own titles (`Bad Request`, `Method Not Allowed`, `Unsupported Media Type`). A 422 body adds `generationsAttempted`.
+
+### 5.1 Inherited defaults
+
+These are not rules of the game, and they are not checks this service added. They are what Spring Boot, Jackson, and Tomcat do because nothing in this project turns them off. Each one was reproduced against a running process.
+
+| What a caller can do | What happens | Where it comes from |
+|---|---|---|
+| Send a cell as `1` or `0` instead of `true` or `false` | Stored as live or dead. `201`. | Jackson coerces those numbers to booleans. |
+| `GET /boards/1-1-1-1-1` | `404`, not `400`. The id is read as `00000001-0001-0001-0001-000000000001`. | `UUID.fromString` accepts that short form. `not-a-uuid` is still `400`. |
+| `GET .../generations/0x2` | Generation 2. `200`. | Spring's number conversion accepts hex. |
+| Valid JSON, then extra text | The board is stored. `201`. | Jackson does not reject trailing tokens unless that check is enabled. |
+| `Accept: application/xml` on an upload | The board is stored, then the response is `406`. | The controller runs before Spring looks for an XML writer. There is none. This is not the `415` for a bad `Content-Type`. |
+| Connect from another machine | The port accepts it. | `application.yml` does not set `server.address`. Tomcat listens on every interface, port 8080. |
+
+The demo scripts have a separate limit, and it is in the shell rather than the service. `scripts/common.sh` passes the upload body to curl with `-d`, so the JSON is one command-line argument. `try-large-glider.sh` (300×300, about 616 KiB) and `try-oversized.sh` (301×301, about 620 KiB) both do this. On Linux one argument cannot exceed 128 KiB, and the shell fails with "Argument list too long" before curl connects. macOS does not have that per-argument cap, which is why the scripts succeed there. The service itself will accept those bodies. Sending the body on stdin avoids the limit.
 
 ```json
 {
@@ -287,7 +302,7 @@ A JaCoCo report is produced on `mvn test` (`target/site/jacoco/index.html`). The
 
 ### 6.3 Running the examples
 
-`./try-all.sh` runs every HTTP scenario against a live process. `try-it.sh` is the blinker alone, and it checks status and cells, not only that curl returned. `scripts/try-*.sh` is one file per other board and error case: still life, toad, beacon, glider, a 300×300 glider, plus-sign lead-in, empty, single cell, full board, 1×1, 1×N, unknown id, `width` 0, a mismatched grid, a null cell, missing `cells`, bad JSON, an oversized board, a negative generation, a generation above the ceiling, a generation past the cell-generation budget, and a bad or clamped `maxGenerations`. The 300×300 glider is the natural no-conclusion: `/generations/56` is 400, the default `/final` is 422 after 1,000 generations, and `maxGenerations=10000` reaches the corner still life at generation 1,192. The clamped call asserts `generationsLimit`, not the server log. `requests.http` is the blinker walk, one request at a time. No OpenAPI tooling is included.
+`./try-all.sh` runs every HTTP scenario against a live process. `try-it.sh` is the blinker alone, and it checks status and cells, not only that curl returned. `scripts/try-*.sh` is one file per other board and error case: still life, toad, beacon, glider, a 300×300 glider, plus-sign lead-in, empty, single cell, full board, 1×1, 1×N, unknown id, `width` 0, a mismatched grid, a null cell, missing `cells`, bad JSON, an oversized board, a negative generation, a generation above the ceiling, a generation past the cell-generation budget, and a bad or clamped `maxGenerations`. The 300×300 glider is the natural no-conclusion: `/generations/56` is 400, the default `/final` is 422 after 1,000 generations, and `maxGenerations=10000` reaches the corner still life at generation 1,192. The clamped call asserts `generationsLimit`, not the server log. `requests.http` is the blinker walk, one request at a time. No OpenAPI tooling is included. The two large-board scripts pass the body on curl's command line and fail on Linux with "Argument list too long" (§5.1). They succeed on macOS.
 
 Restart is two steps, because the process has to stop in between: `./try-restart.sh save`, stop or kill the server, start it, `./try-restart.sh check`. The automated equivalent is `RestartPersistenceTest`.
 
