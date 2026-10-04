@@ -16,8 +16,4 @@ public record Board(
         String initialState,
         Instant createdAt,
         Integer maxGenerations) {
-
-    public int cellCount() {
-        return width * height;
-    }
 }

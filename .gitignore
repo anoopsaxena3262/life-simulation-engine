@@ -3,7 +3,10 @@ target/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+data/restart-demo.id
 .idea/
 *.iml
 .vscode/
 TODO.md
+*.pptx
+*.docx

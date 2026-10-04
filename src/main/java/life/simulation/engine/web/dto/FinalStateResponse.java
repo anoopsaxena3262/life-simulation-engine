@@ -7,7 +7,8 @@ import life.simulation.engine.domain.TerminationKind;
 /**
  * Final state plus the metadata describing how the board concluded.
  *
- * @param period 1 for a fixed point or extinction, greater than 1 for an oscillator
+ * @param period            1 for a fixed point or extinction, greater than 1 for an oscillator
+ * @param generationsLimit  the cap the walk used, after the ceiling clamp
  */
 public record FinalStateResponse(
         UUID id,
@@ -17,5 +18,6 @@ public record FinalStateResponse(
         TerminationKind terminationKind,
         int firstOccurrenceGeneration,
         int period,
-        int generationsComputed) {
+        int generationsComputed,
+        int generationsLimit) {
 }

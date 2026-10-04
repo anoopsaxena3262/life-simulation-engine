@@ -27,5 +27,11 @@ GET http://localhost:8080/api/v1/boards/{id}/final
 ### F4 with an explicit limit.
 GET http://localhost:8080/api/v1/boards/{id}/final?maxGenerations=50
 
+### F4 that gives up. A blinker needs two steps to see its cycle, so a limit of 1 is 422.
+GET http://localhost:8080/api/v1/boards/{id}/final?maxGenerations=1
+
+### 400: maxGenerations must be at least 1.
+GET http://localhost:8080/api/v1/boards/{id}/final?maxGenerations=0
+
 ### 404 path.
 GET http://localhost:8080/api/v1/boards/00000000-0000-0000-0000-000000000000
