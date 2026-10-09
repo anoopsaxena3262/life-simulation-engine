@@ -1,0 +1,26 @@
+meta {
+  name: Null cell (400)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/boards
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {"width":1,"height":1,"cells":[[null]]}
+}
+
+tests {
+  test("Null cell (400)", function () {
+    expect(res.status).to.equal(400);
+    expect(res.body.status).to.equal(400);
+  });
+}

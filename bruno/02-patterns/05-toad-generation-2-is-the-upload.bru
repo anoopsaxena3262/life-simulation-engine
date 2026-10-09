@@ -1,0 +1,18 @@
+meta {
+  name: Toad generation 2 is the upload
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/generations/2
+  body: none
+  auth: none
+}
+
+tests {
+  test("Toad generation 2 is the upload", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.cells).to.eql([[false, false, false, false, false, false], [false, false, true, true, true, false], [false, true, true, true, false, false], [false, false, false, false, false, false]]);
+  });
+}

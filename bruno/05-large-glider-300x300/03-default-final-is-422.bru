@@ -1,0 +1,19 @@
+meta {
+  name: Default final is 422
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final
+  body: none
+  auth: none
+}
+
+tests {
+  test("Default final is 422", function () {
+    expect(res.status).to.equal(422);
+    expect(res.body.title).to.equal("No conclusion");
+    expect(res.body.generationsAttempted).to.equal(1000);
+  });
+}

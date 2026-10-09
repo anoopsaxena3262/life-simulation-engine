@@ -1,0 +1,18 @@
+meta {
+  name: Final maxGenerations=1 (422)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final?maxGenerations=1
+  body: none
+  auth: none
+}
+
+tests {
+  test("Final maxGenerations=1 (422)", function () {
+    expect(res.status).to.equal(422);
+    expect(res.body.generationsAttempted).to.equal(1);
+  });
+}

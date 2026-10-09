@@ -1,0 +1,18 @@
+meta {
+  name: Full board next (four corners)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/next
+  body: none
+  auth: none
+}
+
+tests {
+  test("Full board next (four corners)", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.cells).to.eql([[true, false, false, true], [false, false, false, false], [false, false, false, false], [true, false, false, true]]);
+  });
+}

@@ -1,0 +1,19 @@
+meta {
+  name: maxGenerations=100000 is clamped
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final?maxGenerations=100000
+  body: none
+  auth: none
+}
+
+tests {
+  test("maxGenerations=100000 is clamped", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.terminationKind).to.equal("CYCLE");
+    expect(res.body.generationsLimit).to.equal(10000);
+  });
+}

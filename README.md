@@ -16,6 +16,8 @@ mvn spring-boot:run
 
 Leave that terminal open. The service is ready when the log says `Started GameOfLifeApplication`. It listens on `http://localhost:8080`. A SQLite file is created at `data/game-of-life.db` on first start.
 
+The same process serves a board player at [http://localhost:8080/](http://localhost:8080/). How to use it is in [Board player](#board-player).
+
 Open a **second** terminal. One feature:
 
 ```
@@ -29,6 +31,27 @@ Every feature, in order, stopping at the first failure:
 ```
 
 `./try-it.sh` uploads a blinker and prints `/next` (twice), generation 10, `/final`, and the 422. `./try-all.sh` runs that and then every script in the table below. Stop the service with Ctrl+C in the first terminal.
+
+## Board player
+
+With the service running, open [http://localhost:8080/](http://localhost:8080/). The page is served by that process and calls `/api/v1` on the same origin. It does not apply the rules itself. Each frame asks the service for that generation.
+
+Width and height are the whole board, up to 40 cells on a side. The starting pattern is placed in the center. **Apply size** rebuilds the grid from those three choices. **Play** uploads it, then steps forward. **Reset** shows the uploaded board again. **Final state** shows how that board concluded. Click a cell to toggle it. That edit is a new draft until you play it.
+
+The shapes are the same boards the scripts below upload:
+
+| Pattern | What you see |
+|---|---|
+| Blinker | Three cells flip between a row and a column, in place |
+| Glider | Five cells shift down and to the right, then stop at the edge |
+| Toad, Beacon | Period-2 oscillators, the same kind of flip as the blinker |
+| Block | Four cells in a square. The board does not change |
+| Empty, Single cell | The live cells die. An empty board stays empty |
+| Blank board | An empty grid of the size you set. Click to draw |
+
+A blinker stays three cells on a 10×10 board. The other cells stay empty. The label under the grid reads `10×10 · Generation 0` when that size is applied.
+
+Which button calls which endpoint, and how to remove the page, is in [DEVELOPER.md](DEVELOPER.md#board-player).
 
 ## Scripts
 

@@ -1,0 +1,18 @@
+meta {
+  name: maxGenerations=0 (400)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final?maxGenerations=0
+  body: none
+  auth: none
+}
+
+tests {
+  test("maxGenerations=0 (400)", function () {
+    expect(res.status).to.equal(400);
+    expect(res.body.status).to.equal(400);
+  });
+}

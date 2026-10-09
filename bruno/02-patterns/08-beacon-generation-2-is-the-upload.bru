@@ -1,0 +1,18 @@
+meta {
+  name: Beacon generation 2 is the upload
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/generations/2
+  body: none
+  auth: none
+}
+
+tests {
+  test("Beacon generation 2 is the upload", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.cells).to.eql([[true, true, false, false], [true, true, false, false], [false, false, true, true], [false, false, true, true]]);
+  });
+}
