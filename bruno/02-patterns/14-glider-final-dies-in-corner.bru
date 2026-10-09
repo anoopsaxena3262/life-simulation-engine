@@ -1,0 +1,19 @@
+meta {
+  name: Glider final (dies in corner)
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final
+  body: none
+  auth: none
+}
+
+tests {
+  test("Glider final (dies in corner)", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.terminationKind).to.equal("FIXED_POINT");
+    expect(res.body.period).to.equal(1);
+  });
+}

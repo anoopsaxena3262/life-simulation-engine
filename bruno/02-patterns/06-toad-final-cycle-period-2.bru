@@ -1,0 +1,19 @@
+meta {
+  name: Toad final CYCLE period 2
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final
+  body: none
+  auth: none
+}
+
+tests {
+  test("Toad final CYCLE period 2", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.terminationKind).to.equal("CYCLE");
+    expect(res.body.period).to.equal(2);
+  });
+}

@@ -28,7 +28,9 @@ The service has to survive a restart or a crash and still have the boards. The c
 
 ### 1.3 Out of scope
 
-Authentication, authorisation, multi-tenancy, board deletion and listing, UI, horizontal scale-out, streaming updates. Each omission is deliberate; the notes below explain where the extension points are.
+Authentication, authorisation, multi-tenancy, board deletion and listing, horizontal scale-out, streaming updates. Each omission is deliberate; the notes below explain where the extension points are.
+
+A board player is served with the API. It is a static page in front of the endpoints in §5, not a change to the rules or the stored board. See §3.4.
 
 ### 1.4 Resource bounds
 
@@ -59,6 +61,8 @@ The specification leaves several behaviours open. This section records how each 
 | Grid topology — finite, infinite, or toroidal? | **Finite, fixed-size grid with dead borders.** Width and height are fixed at upload. | Bounded memory and a bounded state space, which makes cycle detection tractable. An infinite grid is a possible extension, not a requirement. |
 | What constitutes a "final state"? | A board has concluded when it reaches a **fixed point** (the next generation is identical) or enters a **cycle** (any previously seen generation recurs). The response includes metadata saying which occurred. | Oscillators such as the blinker never become still. Defining conclusion as stillness alone would classify them incorrectly as non-terminating. |
 | Gliders, which translate indefinitely on an unbounded grid | On a finite grid with dead borders a glider eventually reaches the edge and dies out, producing a fixed point. | A direct consequence of the topology decision above, recorded here so the behaviour is not surprising. |
+| A pattern that keeps moving forever | **Not on this board.** A blinker already cycles in place. A glider that crosses the board forever would need wrapping edges. An unbounded grid was rejected. | Wrapping stays finite, so `/final` can still report a cycle. On a 10×10 board a glider repeats after 40 generations. An open grid has no fixed width, the stored string has no fixed length, and a glider never repeats a position, so conclusion is no longer decidable. |
+| One step, or a dense step and a sparse step? | **One dense `boolean[][]` step.** A set of live coordinates was considered as a second implementation of that same step, returning the same `0`/`1` string. It is not in the service. | The array visits every cell, which matches a board that can be full and matches the JSON grid. The set costs work proportional to live cells: it wins on a 300×300 glider and loses on a full board. Two steppers are two algorithms that must stay identical. These sizes do not need that. |
 | How many attempts before giving up? | A configured `maxGenerations` (default 1000), overridable per request up to a server ceiling. Exceeding it returns 422. | Reaching the limit is a documented outcome, not a server fault, so it is a client-visible 4xx rather than a 500. |
 | Do generation queries mutate the board? | **No.** Fetching generation N is a pure read; the stored board is never advanced by a query. | Keeps the API idempotent and safely cacheable. |
 | Board id format | Server-generated UUID. Never client-supplied. | Avoids collisions and enumeration of other callers' boards. |
@@ -146,6 +150,14 @@ Bit-packing into a byte array was considered and rejected. At the board sizes th
 
 A round-trip test covers `serialize`/`deserialize` before any persistence code exists, along with a length check that rejects a string whose length does not equal `width × height`.
 
+### 3.4 Board player
+
+Spring Boot serves `src/main/resources/static` at `/`. The folder name is one of the four classpath locations Spring Boot already maps to web files (`static`, `public`, `resources`, `META-INF/resources`). `index.html`, `player.css`, and `player.js` are that page. There is no fifth Java package and no controller for the HTML.
+
+The page calls the endpoints in §5 and draws the cells that come back. It does not apply B3/S23. Playback counts a generation index in the browser and calls `GET /generations/{n}`. `GET /next` is always generation 1, so the page does not use it to advance. `GET /boards/{id}` is generation 0, which the page uses as reset. `GET /final` supplies the termination fields. After a cycle is known and one period has been fetched, the page repeats those cells instead of walking to the generation ceiling.
+
+Width and height on the page are at most 40. The API cap of 300 per side is unchanged. The shapes are the boards from the demo scripts and `LifeEngineTest`, centered on the size the caller sets. A blinker remains three cells on a larger board. How to use the page is in DEVELOPER.md.
+
 ---
 
 ## 4. Simulation engine
@@ -161,6 +173,8 @@ The live grid is a `boolean[][]` indexed `[row][column]`, the same layout `State
 A flat `boolean[]` and a reused pair of buffers would avoid allocating one array per generation. That was rejected. Every other layer already thinks in rows and columns, and the cost that matters at these sizes is the neighbour loop, not the array header.
 
 Interior and border cells use the same bounds-checked neighbour count. A faster interior path was rejected as a second implementation to keep correct, which this service does not need.
+
+A sparse step, a set of live coordinates, was the other second implementation. For each live cell it would tally the eight neighbors, then keep a cell with three neighbors, or two neighbors if it was already alive. The work follows the live cells, so a 300×300 glider is cheap and a full board is more expensive than the array. It would convert back to the same `boolean[][]` and the same stored string, so the API, SQLite, and the page would not change. It was not built. One step is enough at these sizes, and a test would have to prove the two results are the same string on every pattern the suite already names. An open infinite grid is the case that would require the set, because an array needs a declared width and height. Wrapping does not: both steppers can treat an off-board neighbor as the cell on the opposite edge.
 
 ### 4.3 Termination detection
 
@@ -312,9 +326,9 @@ Restart is two steps, because the process has to stop in between: `./try-restart
 ## 7. Possible extensions
 
 - Optional per-board generation cap on upload. `Board.maxGenerations` and the nullable `max_generations` column already exist, and `/final` already prefers that column when the caller omits `maxGenerations`. The upload body does not accept it yet, so boards created through the API store null and use the server default.
-- Infinite or toroidal topology as a per-board option.
+- Wrapping edges as a per-board option, so a glider loops and `/final` can still report the cycle (§2). An unbounded grid stays out, because conclusion would no longer be decidable.
 - RLE pattern import for standard Game of Life pattern files.
-- A sparse representation for large, mostly-dead grids, and HashLife for very deep generation counts.
+- A sparse stepper beside the dense one, for a large mostly-dead board, returning the same stored string (§4.2). HashLife, for jumping many generations in one go, is a separate algorithm.
 - A server-backed datastore behind the existing `BoardRepository` interface, for horizontal scale.
 - Rate limiting and request quotas.
 

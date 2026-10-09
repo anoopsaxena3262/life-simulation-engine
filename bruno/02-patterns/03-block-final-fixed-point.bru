@@ -1,0 +1,19 @@
+meta {
+  name: Block final FIXED_POINT
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final
+  body: none
+  auth: none
+}
+
+tests {
+  test("Block final FIXED_POINT", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.terminationKind).to.equal("FIXED_POINT");
+    expect(res.body.period).to.equal(1);
+  });
+}

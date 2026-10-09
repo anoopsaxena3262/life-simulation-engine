@@ -1,0 +1,18 @@
+meta {
+  name: Unknown id (404)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: none
+}
+
+tests {
+  test("Unknown id (404)", function () {
+    expect(res.status).to.equal(404);
+    expect(res.body.title).to.equal("Board not found");
+  });
+}

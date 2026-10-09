@@ -1,0 +1,19 @@
+meta {
+  name: Board
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("Board", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.generation).to.equal(0);
+    expect(res.body.cells).to.eql([[false, false, false], [true, true, true], [false, false, false]]);
+  });
+}

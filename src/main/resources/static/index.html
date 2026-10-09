@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--
+  Self-playing board. These static files are the whole feature.
+  To roll it back, delete src/main/resources/static and restart.
+  The API, domain, and database code are untouched.
+
+  Open http://localhost:8080/ while the service is running.
+  The script calls /api/v1 with relative URLs, so the page and the API
+  share one origin. The browser does not send a cross-origin request.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Life board</title>
+  <link rel="stylesheet" href="/player.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Conway's Game of Life</p>
+      <h1>Board player</h1>
+    </div>
+    <p class="lede">Each frame is a call to this service. This page does not apply the rules.</p>
+  </header>
+
+  <main>
+    <section class="stage" aria-label="Board">
+      <canvas id="board" width="520" height="520">The board is drawn here.</canvas>
+      <p id="generation" class="generation">Generation 0</p>
+      <p id="last-call" class="last-call">No request yet</p>
+    </section>
+
+    <section class="panel" aria-label="Controls">
+      <label class="field">
+        <span>Starting pattern</span>
+        <select id="preset">
+          <option value="blinker">Blinker</option>
+          <option value="block">Block</option>
+          <option value="toad">Toad</option>
+          <option value="beacon">Beacon</option>
+          <option value="glider">Glider</option>
+          <option value="empty">Empty</option>
+          <option value="single">Single cell</option>
+          <option value="custom">Blank board</option>
+        </select>
+      </label>
+
+      <div class="size-row">
+        <label class="field">
+          <span>Width</span>
+          <input id="width" type="number" min="1" max="40" value="3">
+        </label>
+        <label class="field">
+          <span>Height</span>
+          <input id="height" type="number" min="1" max="40" value="3">
+        </label>
+      </div>
+      <button id="resize" type="button" class="apply">Apply size</button>
+
+      <p class="hint">Width and height are the whole board. A blinker is three cells in the center: it flips between a row and a column and stays there. The other cells stay empty. Click a cell to draw your own.</p>
+
+      <div class="actions">
+        <button id="play" type="button">Play</button>
+        <button id="pause" type="button">Pause</button>
+        <button id="step" type="button">Step</button>
+        <button id="reset" type="button">Reset</button>
+        <button id="final" type="button">Final state</button>
+      </div>
+
+      <label class="field speed">
+        <span>Speed <strong id="speed-value">240 ms</strong></span>
+        <input id="speed" type="range" min="80" max="800" step="20" value="240">
+      </label>
+
+      <dl class="facts">
+        <div>
+          <dt>Board</dt>
+          <dd id="board-id">Not uploaded</dd>
+        </div>
+        <div>
+          <dt>Conclusion</dt>
+          <dd id="conclusion">Upload a board to ask /final.</dd>
+        </div>
+      </dl>
+
+      <p id="message" class="message" role="status"></p>
+    </section>
+  </main>
+
+  <script src="/player.js"></script>
+</body>
+</html>

@@ -48,6 +48,7 @@ That compiles `src/main` and `src/test` and runs the suite. Expected result: `BU
 | `src/main/java/life/simulation/engine/service`    | Validation, cache, generation limits.                                      |
 | `src/main/java/life/simulation/engine/web`        | Controller, request and response records, error handler.                   |
 | `src/main/resources/application.yml`              | Port default, datasource URL, generation and cell caps.                    |
+| `src/main/resources/static`                       | Board player: `index.html`, `player.css`, `player.js`. Served at `/`.      |
 | `src/test/java`                                   | One test class per layer. Names match the traceability table in DESIGN.md. |
 | `try-it.sh`                                       | Happy path. Blinker: next, generation 10, final, and the 422.              |
 | `try-all.sh`                                      | Runs every demo script, in order. Stops at the first failure.              |
@@ -99,6 +100,39 @@ What the output should show:
 The first terminal prints one INFO line per call while the script runs. That is the server log, not a second prompt.
 
 If the script says nothing is listening, the service in the first terminal has not reached `Started GameOfLifeApplication` yet. The other boards and the error calls are in [Scripts](#scripts).
+
+### Board player
+
+Open [http://localhost:8080/](http://localhost:8080/) in a browser while this process is running. Spring Boot serves `src/main/resources/static/index.html` as the welcome page. The script calls `/api/v1` with relative URLs, so the page and the API share one origin. Open that URL from the running service. A copy opened as a file cannot call the API.
+
+The page does not step the rules. It draws the cells the service returns. Under the grid, the first line is the board size and the generation on screen, for example `10×10 · Generation 4`. The line under that is the last request.
+
+| Control | What it does | Request |
+|---|---|---|
+| Apply size | Rebuilds the local grid from the pattern, width, and height. | None |
+| Play | Uploads the grid if it has no id, then advances one generation at a time. | `POST /api/v1/boards`, then `GET /api/v1/boards/{id}/generations/{n}` |
+| Step | One generation forward. | The same GET |
+| Pause | Stops the timer. | None |
+| Reset | Shows the uploaded board again. | `GET /api/v1/boards/{id}`, which is always generation 0 |
+| Final state | Shows the concluded cells and the termination fields. | `GET /api/v1/boards/{id}/final` |
+| Click a cell | Toggles that cell and drops the uploaded id. Play uploads the edit as a new board. | None until Play |
+
+`GET /next` is always generation 1, so playback counts `n` in the page and calls `/generations/{n}`. After `/final` reports a cycle, and the page has already fetched one full period, later frames are those fetched cells. A still life or an extinction stops when the generation on screen reaches `firstOccurrenceGeneration`.
+
+Width and height are the board, from 1 to 40 on a side. The API allows 300. The 300×300 case stays in `scripts/try-large-glider.sh`. The pattern is the shape from the demo scripts and `LifeEngineTest`, centered on that board. If the shape is larger than the size you typed, the board grows to fit it. A glider is 6×6.
+
+| Pattern | Taken from | What the board does |
+|---|---|---|
+| Blinker | `try-it.sh` | Three cells. Period 2. They stay in place. A 10×10 blinker is still those three cells, with the rest dead. |
+| Block | `scripts/try-fixed-point.sh` | Still life. `FIXED_POINT`. |
+| Toad | `scripts/try-toad.sh` | Period 2, the same kind of cycle as the blinker. |
+| Beacon | `scripts/try-beacon.sh` | Period 2. |
+| Glider | `scripts/try-glider.sh` | Shifts down and across, then a still life in the corner. |
+| Empty | `scripts/try-empty.sh` | Stays empty. `EXTINCT`. |
+| Single cell | `scripts/try-single-cell.sh` | Dies on the next generation. `EXTINCT`. |
+| Blank board | The page only | An empty grid of the size you set. Click to draw. |
+
+`mvn spring-boot:run` copies `src/main/resources` at startup. Restart the process to see an edit to the player. The player is those three files. Delete `src/main/resources/static` and restart to remove the page. The API classes are unchanged.
 
 ### Stop
 
@@ -398,6 +432,9 @@ Every file Git tracks, and what it is for. Generated output (`target/`), the SQL
 | `DEVELOPER.md` | Setup, commands, tests, logging, and this file list. |
 | `requests.http` | The blinker calls, one request at a time, for an editor that sends HTTP files. |
 | `src/main/resources/application.yml` | SQLite URL, the generation and cell caps, and the log level. |
+| `src/main/resources/static/index.html` | Board player page, served at `/` by the running service. |
+| `src/main/resources/static/player.css` | Layout for that page. |
+| `src/main/resources/static/player.js` | Calls `/api/v1`. Draws the cells the service returns. Does not step the rules. |
 | `src/main/java/life/simulation/engine/GameOfLifeApplication.java` | Process entry point. Starts Spring Boot. |
 | `src/main/java/life/simulation/engine/config/GameProperties.java` | The limits from `application.yml`: generations, cells, and request size. |
 | `src/main/java/life/simulation/engine/config/JacksonConfig.java` | Rejects a null cell instead of storing it as dead. |

@@ -1,0 +1,39 @@
+meta {
+  name: 1x1 live upload
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/boards
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "width": 1,
+    "height": 1,
+    "cells": [
+      [
+        true
+      ]
+    ]
+  }
+}
+
+script:post-response {
+  const loc = res.getHeader('location');
+  if (loc) bru.setVar('boardId', loc.split('/').pop());
+}
+
+tests {
+  test("1x1 live upload", function () {
+    expect(res.status).to.equal(201);
+    expect(res.getHeader('location')).to.match(/\/api\/v1\/boards\/[0-9a-f-]{36}$/);
+  });
+}

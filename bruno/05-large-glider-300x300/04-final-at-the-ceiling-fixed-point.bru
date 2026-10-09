@@ -1,0 +1,22 @@
+meta {
+  name: Final at the ceiling (FIXED_POINT)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/final?maxGenerations=10000
+  body: none
+  auth: none
+}
+
+tests {
+  test("Final at the ceiling (FIXED_POINT)", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.terminationKind).to.equal("FIXED_POINT");
+    expect(res.body.period).to.equal(1);
+    expect(res.body.generationsLimit).to.equal(10000);
+    expect(res.body.generationsComputed).to.equal(1192);
+    expect(res.body.firstOccurrenceGeneration).to.equal(1191);
+  });
+}

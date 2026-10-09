@@ -1,0 +1,18 @@
+meta {
+  name: Glider generation 4 (shifted)
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/generations/4
+  body: none
+  auth: none
+}
+
+tests {
+  test("Glider generation 4 (shifted)", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.cells).to.eql([[false, false, false, false, false, false], [false, false, true, false, false, false], [false, false, false, true, false, false], [false, true, true, true, false, false], [false, false, false, false, false, false], [false, false, false, false, false, false]]);
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: 301x301 over max-cells (400)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/boards
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  req.setBody({ width: 301, height: 301, cells: Array.from({ length: 301 }, () => Array(301).fill(false)) });
+}
+
+tests {
+  test("301x301 over max-cells (400)", function () {
+    expect(res.status).to.equal(400);
+    expect(res.body.title).to.equal("Invalid board");
+  });
+}

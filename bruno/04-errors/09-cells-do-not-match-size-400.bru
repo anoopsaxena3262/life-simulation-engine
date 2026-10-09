@@ -1,0 +1,41 @@
+meta {
+  name: Cells do not match size (400)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/boards
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "width": 2,
+    "height": 2,
+    "cells": [
+      [
+        false,
+        false,
+        false
+      ],
+      [
+        false,
+        false,
+        false
+      ]
+    ]
+  }
+}
+
+tests {
+  test("Cells do not match size (400)", function () {
+    expect(res.status).to.equal(400);
+    expect(res.body.title).to.equal("Invalid board");
+  });
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Upload 300x300 glider
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/boards
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  const n = 300;
+  const cells = Array.from({ length: n }, () => Array(n).fill(false));
+  [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]].forEach(([r, c]) => { cells[r][c] = true; });
+  req.setBody({ width: n, height: n, cells });
+}
+
+script:post-response {
+  const loc = res.getHeader('location');
+  if (loc) bru.setVar('boardId', loc.split('/').pop());
+}
+
+tests {
+  test("Upload 300x300 glider", function () {
+    expect(res.status).to.equal(201);
+    expect(res.getHeader('location')).to.match(/\/api\/v1\/boards\/[0-9a-f-]{36}$/);
+  });
+}

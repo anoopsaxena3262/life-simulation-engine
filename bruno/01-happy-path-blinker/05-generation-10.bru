@@ -1,0 +1,19 @@
+meta {
+  name: Generation 10
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/boards/{{boardId}}/generations/10
+  body: none
+  auth: none
+}
+
+tests {
+  test("Generation 10", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.generation).to.equal(10);
+    expect(res.body.cells).to.eql([[false, false, false], [true, true, true], [false, false, false]]);
+  });
+}

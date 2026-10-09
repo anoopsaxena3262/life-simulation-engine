@@ -1,0 +1,84 @@
+meta {
+  name: Glider upload (6x6)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/boards
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "width": 6,
+    "height": 6,
+    "cells": [
+      [
+        false,
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      [
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    ]
+  }
+}
+
+script:post-response {
+  const loc = res.getHeader('location');
+  if (loc) bru.setVar('boardId', loc.split('/').pop());
+}
+
+tests {
+  test("Glider upload (6x6)", function () {
+    expect(res.status).to.equal(201);
+    expect(res.getHeader('location')).to.match(/\/api\/v1\/boards\/[0-9a-f-]{36}$/);
+  });
+}
